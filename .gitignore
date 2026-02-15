@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+
+# NVFlare simulation and logs
+/tmp/nvflare/
+simulate_job/
+job_results/
+tb_events/
+
+# Data
+chest_xray/
+
+# OS specific
+.DS_Store
+Thumbs.db
