@@ -46,4 +46,4 @@ We compared 4 different configurations. Crucially, we distinguish between **Weig
 *   `diagnostic.py`: Tool used to verify parameter freezing and gradient flow.
 
 ---
-*Developed for the Google DeepMind Advanced Agentic Coding Tutorial.*
+*Developed for the Federated Learning Tutorial.*
