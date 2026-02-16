@@ -102,11 +102,12 @@ def main():
         
         # Custom hyperparams: LoRA needs more aggressive updates as it has few parameters
         if args.model_type == "lora":
-            current_lr = 0.002 # Higher LR for LoRA
-            current_epochs = epochs * 2 # Double epochs for LoRA to compensate for small param space
+            current_lr = 0.002 # High LR for LoRA to move small adapter weights
+            current_epochs = epochs * 2 # Double epochs for LoRA
             optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=current_lr)
         else:
-            current_lr = 0.0005
+            # Lower LR for FP16 Full model to prevent the accuracy drop we saw (62%)
+            current_lr = 0.0003 if args.use_amp else 0.0005 
             current_epochs = epochs
             optimizer = torch.optim.Adam(model.parameters(), lr=current_lr)
             
@@ -115,6 +116,7 @@ def main():
         
         # (6) evaluate on received model
         accuracy = evaluate(model, test_loader, device)
+        print(f"Round {input_model.current_round} - Site {client_name} - Received Baseline Accuracy: {accuracy:.2f}%")
 
         # (optional) Task branch for cross-site evaluation
         if flare.is_evaluate():
