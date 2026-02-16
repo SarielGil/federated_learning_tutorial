@@ -37,8 +37,11 @@ def main():
     parser.add_argument("--data_path", type=str, default="chest_xray")
     parser.add_argument("--model_type", type=str, default="full", choices=["full", "lora"])
     parser.add_argument("--lora_rank", type=int, default=4)
-    parser.add_argument("--use_amp", type=bool, default=True)
+    parser.add_argument("--use_amp", type=str, default="True")
     args = parser.parse_args()
+    
+    # Convert string to boolean
+    args.use_amp = args.use_amp.lower() in ['true', '1', 'yes']
     
     epochs = args.epochs
     lr = 0.001 # Reduced LR for deeper model
