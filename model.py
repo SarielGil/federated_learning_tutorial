@@ -120,6 +120,10 @@ class LoRAConvNet2(nn.Module):
         super().__init__()
         self.base_model = base_model if base_model is not None else ConvNet2()
         
+        # CRITICAL: Freeze ALL base model parameters first
+        for param in self.base_model.parameters():
+            param.requires_grad = False
+        
         # Wrap the linear layers in the fc sequential block with LoRALinear
         # New indices due to ReLU and Dropout: 0, 3, 6, 8
         self.base_model.fc[0] = LoRALinear(self.base_model.fc[0], rank=rank)

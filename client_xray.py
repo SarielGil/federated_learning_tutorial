@@ -61,7 +61,7 @@ def main():
 
     if args.model_type == "lora":
         model = LoRAConvNet2(rank=args.lora_rank)
-        optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=1e-4)
+        optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=0.001)
 
     else:
         model = ConvNet2()
