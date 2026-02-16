@@ -100,11 +100,15 @@ def main():
         model.load_state_dict(input_model.params)
         model.to(device)
         
-        # Reset optimizer every round for stability in FL and use Adam for both
+        # Custom hyperparams: LoRA needs more aggressive updates as it has few parameters
         if args.model_type == "lora":
-            optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=0.0005)
+            current_lr = 0.002 # Higher LR for LoRA
+            current_epochs = epochs * 2 # Double epochs for LoRA to compensate for small param space
+            optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=current_lr)
         else:
-            optimizer = torch.optim.Adam(model.parameters(), lr=0.0005)
+            current_lr = 0.0005
+            current_epochs = epochs
+            optimizer = torch.optim.Adam(model.parameters(), lr=current_lr)
             
         # Mixed precision scaler
         scaler = GradScaler(enabled=args.use_amp and device.type == "cuda")
@@ -120,8 +124,8 @@ def main():
             continue
 
         model.train()
-        steps = epochs * len(train_loader)
-        for epoch in range(epochs):
+        steps = current_epochs * len(train_loader)
+        for epoch in range(current_epochs):
             running_loss = 0.0
             total_preds = []
             for i, batch in enumerate(train_loader):
