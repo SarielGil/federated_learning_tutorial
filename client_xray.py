@@ -70,11 +70,7 @@ def main():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
     loss = nn.CrossEntropyLoss()
     
-    # Mixed precision scaler
-    scaler = GradScaler(enabled=args.use_amp and device.type == "cuda")
-    
-    # Data transforms based on Kaggle notebook:
-    # https://www.kaggle.com/code/hemantgahnolia/cnn-classification-using-pytorch
+    # Data transforms
     transform = Compose(
         [
             Resize((224, 224)),
@@ -104,6 +100,15 @@ def main():
         model.load_state_dict(input_model.params)
         model.to(device)
         
+        # Reset optimizer every round for stability in FL and use Adam for both
+        if args.model_type == "lora":
+            optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=0.0005)
+        else:
+            optimizer = torch.optim.Adam(model.parameters(), lr=0.0005)
+            
+        # Mixed precision scaler
+        scaler = GradScaler(enabled=args.use_amp and device.type == "cuda")
+        
         # (6) evaluate on received model
         accuracy = evaluate(model, test_loader, device)
 
@@ -118,6 +123,7 @@ def main():
         steps = epochs * len(train_loader)
         for epoch in range(epochs):
             running_loss = 0.0
+            total_preds = []
             for i, batch in enumerate(train_loader):
                 images, labels = batch[0].to(device), batch[1].to(device)
                 optimizer.zero_grad()
@@ -135,14 +141,23 @@ def main():
                     optimizer.step()
 
                 running_loss += cost.item()
+                
+                # Track prediction distribution
+                _, predicted = torch.max(predictions.data, 1)
+                total_preds.extend(predicted.cpu().numpy().tolist())
+
                 if i % 10 == 9 or i == len(train_loader) - 1:
                     avg_loss = running_loss / (i % 10 + 1)
-                    print(f"[{epoch + 1}, {i + 1:5d}] loss: {avg_loss:.3f}")
+                    
+                    # Log prediction distribution to monitor collapse
+                    p_ratio = sum(total_preds) / len(total_preds) if len(total_preds) > 0 else 0
+                    print(f"[{epoch+1}, {i+1:5d}] loss: {avg_loss:.3f} | Pred Ratio (Pneumonia): {p_ratio:.2f}")
 
                     # Log metrics
                     global_step = input_model.current_round * steps + epoch * len(train_loader) + i
                     summary_writer.add_scalar(tag="loss", scalar=avg_loss, global_step=global_step)
                     running_loss = 0.0
+                    total_preds = []
 
         print(f"Finished Training for {client_name}")
 
